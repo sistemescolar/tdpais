@@ -49,7 +49,9 @@
 
   <button onclick="fazerBackup()">Fazer Backup Completo do Sistema</button>
   <button onclick="baixarBackup()">Baixar Backup (JSON)</button>
-  <button onclick="restaurarBackup()">Restaurar Backup</button>
+  <button onclick="restaurarBackup()">Restaurar Backup Interno</button>
+  <button onclick="document.getElementById('arquivoBackup').click()">Restaurar de Arquivo</button>
+  <input type="file" id="arquivoBackup" style="display:none" accept=".json" onchange="restaurarDeArquivo(event)" />
   <button onclick="zerarCaixa()">Zerar Caixa</button>
   <button onclick="voltarPainel()">Retornar ao Painel</button>
   <button onclick="voltarLogin()">Voltar ao Login</button>
@@ -98,12 +100,31 @@
         return;
       }
 
-      localStorage.setItem('vendedores', JSON.stringify(backup.vendedores));
-      localStorage.setItem('receitas', JSON.stringify(backup.receitas));
-      localStorage.setItem('despesas', JSON.stringify(backup.despesas));
-      localStorage.setItem('historicoCaixa', JSON.stringify(backup.caixaHistorico));
-      localStorage.setItem('saldoAnterior', JSON.stringify(backup.saldoAnterior));
+      aplicarBackup(backup);
+    }
 
+    function restaurarDeArquivo(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const backup = JSON.parse(e.target.result);
+          aplicarBackup(backup);
+        } catch (error) {
+          alert("Erro ao importar backup. Verifique se o arquivo está correto.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function aplicarBackup(backup) {
+      localStorage.setItem('vendedores', JSON.stringify(backup.vendedores || []));
+      localStorage.setItem('receitas', JSON.stringify(backup.receitas || []));
+      localStorage.setItem('despesas', JSON.stringify(backup.despesas || []));
+      localStorage.setItem('historicoCaixa', JSON.stringify(backup.caixaHistorico || []));
+      localStorage.setItem('saldoAnterior', JSON.stringify(backup.saldoAnterior || 0));
       alert('Backup restaurado com sucesso!');
       exibirCaixa();
     }
@@ -119,7 +140,6 @@
       localStorage.removeItem('historicoCaixa');
       localStorage.removeItem('saldoAnterior');
 
-      // Zera histórico de vendas de cada vendedor
       const vendedores = JSON.parse(localStorage.getItem('vendedores') || '[]');
       vendedores.forEach(v => v.historico = []);
       localStorage.setItem('vendedores', JSON.stringify(vendedores));
@@ -159,7 +179,6 @@ SALDO FINAL: R$ ${saldoFinal.toFixed(2)}
       document.getElementById('dadosCaixa').textContent = dados;
     }
 
-    // Exibir ao carregar
     exibirCaixa();
   </script>
 </body>
