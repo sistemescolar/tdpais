@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Backup do Sistema</title>
+  <title>Backup e Restauração do Sistema</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -40,18 +40,42 @@
       color: white;
     }
 
+    .btn-restore {
+      background-color: #2196F3;
+      color: white;
+    }
+
     .btn-voltar {
       background-color: #555;
       color: white;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    label[for="fileInput"] {
+      padding: 12px 25px;
+      margin: 10px;
+      font-size: 16px;
+      background-color: #2196F3;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Backup Completo do Sistema</h1>
-    <p>Clique no botão abaixo para baixar um arquivo com todos os dados armazenados no sistema.</p>
+    <h1>Backup e Restauração</h1>
+    <p>Você pode exportar todos os dados ou restaurar um backup existente.</p>
 
-    <button class="btn-backup" onclick="gerarBackup()">📦 Gerar Backup</button>
+    <button class="btn-backup" onclick="gerarBackup()">📥 Gerar Backup</button>
+
+    <label for="fileInput">📤 Restaurar Backup</label>
+    <input type="file" id="fileInput" accept=".json" onchange="restaurarBackup(event)">
+
+    <br>
     <button class="btn-voltar" onclick="window.location.href='index.html'">↩️ Voltar para o Login</button>
   </div>
 
@@ -59,23 +83,41 @@
     function gerarBackup() {
       const dados = {};
 
-      // Percorre todas as chaves do localStorage
       for (let i = 0; i < localStorage.length; i++) {
         const chave = localStorage.key(i);
         dados[chave] = localStorage.getItem(chave);
       }
 
-      // Cria o blob do JSON
       const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-
-      // Cria link para download
       const a = document.createElement('a');
       a.href = url;
       a.download = 'backup_sistema.json';
       a.click();
-
       URL.revokeObjectURL(url);
+    }
+
+    function restaurarBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const dados = JSON.parse(e.target.result);
+          if (confirm("Tem certeza que deseja restaurar este backup? Isso substituirá os dados atuais.")) {
+            localStorage.clear();
+            for (const chave in dados) {
+              localStorage.setItem(chave, dados[chave]);
+            }
+            alert("Backup restaurado com sucesso!");
+            location.reload();
+          }
+        } catch (err) {
+          alert("Erro ao importar o arquivo. Verifique se é um backup válido.");
+        }
+      };
+      reader.readAsText(file);
     }
   </script>
 </body>
