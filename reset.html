@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Resetar Sistema</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background-color: #f2f2f2;
+    }
+    h1 {
+      color: #b30000;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+    .voltar {
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    .reset {
+      background-color: #d9534f;
+      color: white;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>⚠️ Resetar Todo o Sistema</h1>
+  <p>Esta ação irá apagar todos os dados do sistema armazenados no navegador.</p>
+
+  <button class="reset" onclick="confirmarReset()">Apagar Tudo</button>
+  <br><br>
+  <button class="voltar" onclick="voltarLogin()">Voltar para o Login</button>
+
+  <script>
+    function confirmarReset() {
+      if (confirm("Tem certeza que deseja apagar todos os dados do sistema? Essa ação não pode ser desfeita.")) {
+        localStorage.clear();
+        alert("Todos os dados foram apagados com sucesso.");
+        location.reload();
+      }
+    }
+
+    function voltarLogin() {
+      window.location.href = "login.html"; // Altere se o nome do seu login for diferente
+    }
+  </script>
+
+</body>
+</html>

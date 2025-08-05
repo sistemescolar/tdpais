@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Resumo do Caixa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { margin: 0; padding: 20px; background-color: #f4f4f4; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #333;
+      color: white;
+      padding: 10px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+    h1 { text-align: center; margin-top: 20px; }
+    .resumo {
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+    }
+    .linha {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 18px;
+    }
+    .linha strong {
+      color: #333;
+    }
+    .linha span {
+      font-weight: bold;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>Usuário: <span id="usuarioLogado">-</span></div>
+  <div>Hora: <span id="horaAtual">--:--:--</span></div>
+</header>
+
+<h1>RESUMO DO CAIXA</h1>
+
+<div class="resumo">
+  <div class="linha"><strong>Saldo Anterior:</strong> <span id="saldoAnterior">R$ 0,00</span></div>
+  <div class="linha"><strong>Apurado Total:</strong> <span id="apuradoTotal">R$ 0,00</span></div>
+  <div class="linha"><strong>Despesas:</strong> <span id="totalDespesas">R$ 0,00</span></div>
+  <hr>
+  <div class="linha"><strong>Saldo Final:</strong> <span id="saldoFinal">R$ 0,00</span></div>
+
+  <hr>
+  <div class="linha"><strong>Pedro (50%):</strong> <span id="partePedro">R$ 0,00</span></div>
+  <div class="linha"><strong>José (25%):</strong> <span id="parteJose">R$ 0,00</span></div>
+  <div class="linha"><strong>Benedito (25%):</strong> <span id="parteBenedito">R$ 0,00</span></div>
+</div>
+
+<script>
+  // Mostrar usuário logado
+  document.getElementById("usuarioLogado").textContent =
+    localStorage.getItem("usuarioLogado") || "Desconhecido";
+
+  // Relógio ao vivo
+  function atualizarHora() {
+    const agora = new Date();
+    document.getElementById("horaAtual").textContent = agora.toLocaleTimeString();
+  }
+  setInterval(atualizarHora, 1000);
+  atualizarHora();
+
+  // Carregar dados do caixa e partilha
+  function carregarResumoCaixa() {
+    let saldoAnterior = 0;
+    let totalApurado = 0;
+    let totalDespesas = 0;
+
+    // Obter saldo anterior (receitas)
+    const receitas = JSON.parse(localStorage.getItem("receitas")) || [];
+    receitas.forEach(r => {
+      saldoAnterior += parseFloat(r.valor || 0);
+    });
+
+    // Obter apurado total (vendas de todos os vendedores)
+    const vendedores = JSON.parse(localStorage.getItem("vendedores")) || [];
+    vendedores.forEach(vendedor => {
+      const vendas = JSON.parse(localStorage.getItem("vendas_" + vendedor.nome)) || [];
+      vendas.forEach(v => {
+        totalApurado += parseFloat(v.apurou || 0);
+      });
+    });
+
+    // Obter despesas
+    const despesas = JSON.parse(localStorage.getItem("despesas")) || [];
+    despesas.forEach(d => {
+      totalDespesas += parseFloat(d.valor || 0);
+    });
+
+    // Calcular saldo final
+    const saldoFinal = saldoAnterior + totalApurado - totalDespesas;
+
+    // Cálculo das partilhas
+    const partePedro = saldoFinal * 0.50;
+    const parteJose = saldoFinal * 0.25;
+    const parteBenedito = saldoFinal * 0.25;
+
+    // Exibir valores formatados
+    document.getElementById("saldoAnterior").textContent = `R$ ${saldoAnterior.toFixed(2)}`;
+    document.getElementById("apuradoTotal").textContent = `R$ ${totalApurado.toFixed(2)}`;
+    document.getElementById("totalDespesas").textContent = `R$ ${totalDespesas.toFixed(2)}`;
+    document.getElementById("saldoFinal").textContent = `R$ ${saldoFinal.toFixed(2)}`;
+
+    // Exibir partilhas
+    document.getElementById("partePedro").textContent = `R$ ${partePedro.toFixed(2)}`;
+    document.getElementById("parteJose").textContent = `R$ ${parteJose.toFixed(2)}`;
+    document.getElementById("parteBenedito").textContent = `R$ ${parteBenedito.toFixed(2)}`;
+  }
+
+  carregarResumoCaixa();
+</script>
+
+</body>
+</html>

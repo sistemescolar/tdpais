@@ -1,0 +1,119 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel do Usuário</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .user-info {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      background: #fff;
+      padding: 10px 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .user-info p {
+      margin: 5px 0;
+      font-weight: bold;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
+
+    .btn {
+      background: green;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      background: #117a8b;
+    }
+
+    @media (max-width: 600px) {
+      .btn {
+        padding: 12px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Painel do Usuário</h2>
+  </header>
+
+  <div class="user-info">
+    <p id="usuarioInfo">Usuário: ...</p>
+    <p id="horaAtual">Hora: --:--:--</p>
+  </div>
+
+  <div class="container">
+    <button class="btn" onclick="irPara('resumo.html')">Resumo do Caixa</button>
+    <button class="btn" onclick="irPara('relatorio.html')">Buscar Relatório no Sistema</button>
+    <button class="btn" onclick="irPara('backup.html')">Backup</button>
+    <button class="btn" onclick="sair()">Sair</button>
+  </div>
+
+  <script>
+    // Verifica se o usuário está logado
+    const usuario = localStorage.getItem("usuarioLogado");
+    if (!usuario) {
+      window.location.href = "index.html";
+    } else {
+      document.getElementById("usuarioInfo").textContent = "Usuário: " + usuario;
+    }
+
+    // Relógio em tempo real
+    function atualizarRelogio() {
+      const agora = new Date();
+      const hora = agora.toLocaleTimeString();
+      document.getElementById("horaAtual").textContent = "Hora: " + hora;
+    }
+
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+
+    // Redirecionar
+    function irPara(pagina) {
+      window.location.href = pagina;
+    }
+
+    // Sair
+    function sair() {
+      localStorage.removeItem("usuarioLogado");
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

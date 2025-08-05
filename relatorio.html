@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Vendas</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f9f9f9; }
+    h1 { text-align: center; }
+    label, input, button { margin: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .actions { margin-top: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+<header>
+  <div><strong>Usuário:</strong> <span id="usuarioLogado">...</span></div>
+  <div><strong>Hora:</strong> <span id="horaAtual">--:--:--</span></div>
+</header>
+
+<h1>RELATORIO GERAL</h1>
+
+<div class="resumo">
+  <div>Saldo Anterior: R$ <span id="saldoAnterior">0,00</span></div>
+  <div>Total Apurado: R$ <span id="totalApurado">0,00</span></div>
+  <div>Total de Despesas: R$ <span id="totalDespesas">0,00</span></div>
+  <div>Saldo Final: R$ <span id="saldoFinal">0,00</span></div>
+</div>
+
+<fieldset>
+  <legend>Filtro de Vendas</legend>
+  <label for="dataInicialVenda">De:</label>
+  <input type="date" id="dataInicialVenda" onchange="filtrarTudo()" />
+  <label for="dataFinalVenda">Até:</label>
+  <input type="date" id="dataFinalVenda" onchange="filtrarTudo()" />
+</fieldset>
+
+<table id="tabelaVendas">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Vendedor</th>
+      <th>Bloco</th>
+      <th>Vendeu</th>
+      <th>Apurou</th>
+      <th>Pagou</th>
+      <th>Deve</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<fieldset>
+  <legend>Filtro de Despesas</legend>
+  <label for="dataInicialDespesa">De:</label>
+  <input type="date" id="dataInicialDespesa" onchange="filtrarTudo()" />
+  <label for="dataFinalDespesa">Até:</label>
+  <input type="date" id="dataFinalDespesa" onchange="filtrarTudo()" />
+</fieldset>
+
+<table id="tabelaDespesas">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Descrição</th>
+      <th>Valor</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div>
+  <button onclick="exportarPDF()">Exportar em PDF</button>
+  <button onclick="voltarPainel()">Voltar para Painel</button>
+</div>
+<fieldset>
+  <legend>Filtro de Despesas</legend>
+  <label for="dataInicialDespesa">De:</label>
+  <input type="date" id="dataInicialDespesa" onchange="filtrarTudo()" />
+  <label for="dataFinalDespesa">Até:</label>
+  <input type="date" id="dataFinalDespesa" onchange="filtrarTudo()" />
+</fieldset>
+
+<table id="tabelaDespesas">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Descrição</th>
+      <th>Valor</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div>
+  <button onclick="exportarPDF()">Exportar em PDF</button>
+  <button onclick="voltarPainel()">Voltar para Painel</button>
+</div>
+
+<script>
+  // Formata número para string com vírgula e 2 decimais
+  function formatar(valor) {
+    return (Number(valor) || 0).toFixed(2).replace('.', ',');
+  }
+
+  // Atualiza hora em tempo real
+  function atualizarHora() {
+    const agora = new Date();
+    document.getElementById("horaAtual").textContent = agora.toLocaleTimeString();
+  }
+  setInterval(atualizarHora, 1000);
+  atualizarHora();
+
+  // Exibe usuário logado
+  const usuario = localStorage.getItem("usuarioLogado") || "Visitante";
+  document.getElementById("usuarioLogado").textContent = usuario;
+
+  // Carrega e filtra dados vendas e despesas e atualiza totais e tabelas
+  function filtrarTudo() {
+    carregarCaixa();
+  }
+
+  function carregarCaixa() {
+    // Datas filtro
+    const dataInicioVenda = document.getElementById("dataInicialVenda").value;
+    const dataFimVenda = document.getElementById("dataFinalVenda").value;
+    const dataInicioDespesa = document.getElementById("dataInicialDespesa").value;
+    const dataFimDespesa = document.getElementById("dataFinalDespesa").value;
+
+    // Receitas (saldo anterior)
+    const receitas = JSON.parse(localStorage.getItem("receitas") || "[]");
+    let saldoAnterior = receitas.reduce((acc, r) => acc + parseFloat(r.valor || 0), 0);
+
+    // Despesas filtradas
+    const despesas = JSON.parse(localStorage.getItem("despesas") || "[]");
+    const despesasFiltradas = despesas.filter(d => {
+      return (!dataInicioDespesa || d.data >= dataInicioDespesa) && (!dataFimDespesa || d.data <= dataFimDespesa);
+    });
+
+    // Vendas: buscar todas vendas de todos vendedores, adicionando o nome do vendedor a cada venda
+    const vendas = Object.keys(localStorage)
+      .filter(k => k.startsWith("vendas_"))
+      .flatMap(k => {
+        const vendedor = k.substring(7); // remove "vendas_"
+        const listaVendas = JSON.parse(localStorage.getItem(k) || "[]");
+        return listaVendas.map(v => ({ ...v, vendedor }));
+      });
+
+    // Filtra vendas por data
+    const vendasFiltradas = vendas.filter(v => {
+      return (!dataInicioVenda || v.data >= dataInicioVenda) && (!dataFimVenda || v.data <= dataFimVenda);
+    });
+
+    // Somar apurado das vendas filtradas
+    let totalApurado = 0;
+    vendasFiltradas.forEach(v => {
+      totalApurado += parseFloat(v.apurou || 0);
+    });
+
+    // Somar despesas filtradas
+    let totalDespesas = 0;
+    despesasFiltradas.forEach(d => {
+      totalDespesas += parseFloat(d.valor || 0);
+    });
+
+    let saldoFinal = saldoAnterior + totalApurado - totalDespesas;
+
+    // Atualiza números no resumo
+    document.getElementById("saldoAnterior").textContent = formatar(saldoAnterior);
+    document.getElementById("totalApurado").textContent = formatar(totalApurado);
+    document.getElementById("totalDespesas").textContent = formatar(totalDespesas);
+    document.getElementById("saldoFinal").textContent = formatar(saldoFinal);
+
+    // Preenche tabela vendas
+    const tbodyVendas = document.querySelector("#tabelaVendas tbody");
+    tbodyVendas.innerHTML = "";
+    vendasFiltradas.forEach(v => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${v.data}</td>
+        <td>${v.vendedor}</td>
+        <td>${v.bloco}</td>
+        <td>${v.vendeu}</td>
+        <td>R$ ${formatar(v.apurou)}</td>
+        <td>R$ ${formatar(v.pagou)}</td>
+        <td>R$ ${formatar(v.deve)}</td>
+      `;
+      tbodyVendas.appendChild(tr);
+    });
+
+    // Preenche tabela despesas
+    const tbodyDespesas = document.querySelector("#tabelaDespesas tbody");
+    tbodyDespesas.innerHTML = "";
+    despesasFiltradas.forEach(d => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.data}</td>
+        <td>${d.descricao}</td>
+        <td>R$ ${formatar(d.valor)}</td>
+      `;
+      tbodyDespesas.appendChild(tr);
+    });
+  }
+
+  function exportarPDF() {
+    window.print();
+  }
+
+  function voltarPainel() {
+    window.location.href = "painel.html";
+  }
+
+  // Carrega dados iniciais
+  carregarCaixa();
+</script>
+
+</body>
+</html>

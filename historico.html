@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Histórico de Vendas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .vendedor-lista { margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #ddd; }
+    input, button { padding: 6px; margin: 4px; }
+    .botoes { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>Usuário:</strong> <span id="usuarioLogado"></span></div>
+    <div><strong>Hora:</strong> <span id="relogio"></span></div>
+    <button onclick="voltar()">Voltar ao Painel</button>
+  </header>
+
+  <h2>Histórico de Vendas</h2>
+  <div class="vendedor-lista" id="listaVendedores"></div>
+
+  <h3 id="vendedorSelecionado"></h3>
+
+  <form id="formVenda" onsubmit="adicionarVenda(event)">
+    <input type="date" id="data" required>
+    <input type="text" id="bloco" placeholder="Bloco" required>
+    <input type="number" id="recebeu" placeholder="Recebeu" required oninput="calcularVenda()">
+    <input type="number" id="devolveu" placeholder="Devolveu" required oninput="calcularVenda()">
+    <input type="number" id="vendeu" placeholder="Vendeu" readonly>
+    <input type="number" id="cotacao" placeholder="Cotação" readonly>
+    <input type="number" id="apurou" placeholder="Apurou" readonly>
+    <input type="number" id="pagou" placeholder="Pagou" required oninput="calcularDeve()">
+    <input type="number" id="deve" placeholder="Deve" readonly>
+    <button type="submit">Adicionar Linha</button>
+  </form>
+
+  <table id="tabelaVendas">
+    <thead>
+      <tr>
+        <th>Data</th><th>Bloco</th><th>Recebeu</th><th>Devolveu</th><th>Vendeu</th>
+        <th>Cotação</th><th>Apurou</th><th>Pagou</th><th>Deve</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="botoes">
+    <button onclick="salvarVendas()">Salvar Vendas</button>
+    <button onclick="exportarPDF()">Exportar PDF</button>
+  </div>
+
+  <script>
+    const usuario = localStorage.getItem('usuarioLogado') || 'Desconhecido';
+    document.getElementById('usuarioLogado').innerText = usuario;
+
+    function atualizarRelogio() {
+      const agora = new Date();
+      document.getElementById('relogio').innerText = agora.toLocaleString();
+    }
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+
+    const listaVendedores = document.getElementById('listaVendedores');
+    const vendedores = JSON.parse(localStorage.getItem('vendedores') || '[]');
+    let vendas = [];
+    let vendedorAtual = null;
+
+    vendedores.forEach(v => {
+      const btn = document.createElement('button');
+      btn.textContent = v.nome;
+      btn.onclick = () => selecionarVendedor(v);
+      listaVendedores.appendChild(btn);
+    });
+
+    function selecionarVendedor(vendedor) {
+      vendedorAtual = vendedor;
+      document.getElementById('vendedorSelecionado').innerText = `Vendas de: ${vendedor.nome}`;
+      document.getElementById('cotacao').value = vendedor.cotacao;
+      vendas = JSON.parse(localStorage.getItem('vendas_' + vendedor.nome) || '[]');
+      renderizarTabela();
+    }
+
+    function calcularVenda() {
+      const recebeu = parseInt(document.getElementById('recebeu').value) || 0;
+      const devolveu = parseInt(document.getElementById('devolveu').value) || 0;
+      const vendeu = recebeu - devolveu;
+      document.getElementById('vendeu').value = vendeu;
+      const cotacao = parseFloat(document.getElementById('cotacao').value) || 0;
+      const apurou = vendeu * cotacao;
+      document.getElementById('apurou').value = apurou.toFixed(2);
+      calcularDeve();
+    }
+
+    function calcularDeve() {
+      const apurou = parseFloat(document.getElementById('apurou').value) || 0;
+      const pagou = parseFloat(document.getElementById('pagou').value) || 0;
+      const deve = apurou - pagou;
+      document.getElementById('deve').value = deve.toFixed(2);
+    }
+
+    function adicionarVenda(e) {
+      e.preventDefault();
+      const venda = {
+        data: document.getElementById('data').value,
+        bloco: document.getElementById('bloco').value,
+        recebeu: parseInt(document.getElementById('recebeu').value),
+        devolveu: parseInt(document.getElementById('devolveu').value),
+        vendeu: parseInt(document.getElementById('vendeu').value),
+        cotacao: parseFloat(document.getElementById('cotacao').value),
+        apurou: parseFloat(document.getElementById('apurou').value),
+        pagou: parseFloat(document.getElementById('pagou').value),
+        deve: parseFloat(document.getElementById('deve').value)
+      };
+      vendas.push(venda);
+      renderizarTabela();
+      e.target.reset();
+      document.getElementById('cotacao').value = vendedorAtual.cotacao;
+    }
+
+    function renderizarTabela() {
+      const tbody = document.querySelector('#tabelaVendas tbody');
+      tbody.innerHTML = '';
+      vendas.forEach((v, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${v.data}</td><td>${v.bloco}</td><td>${v.recebeu}</td><td>${v.devolveu}</td>
+          <td>${v.vendeu}</td><td>${v.cotacao.toFixed(2)}</td><td>${v.apurou.toFixed(2)}</td>
+          <td>${v.pagou.toFixed(2)}</td><td>${v.deve.toFixed(2)}</td>
+          <td><button onclick="editarVenda(${i})">Editar</button> <button onclick="excluirVenda(${i})">Excluir</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function editarVenda(index) {
+      const v = vendas[index];
+      document.getElementById('data').value = v.data;
+      document.getElementById('bloco').value = v.bloco;
+      document.getElementById('recebeu').value = v.recebeu;
+      document.getElementById('devolveu').value = v.devolveu;
+      document.getElementById('pagou').value = v.pagou;
+      calcularVenda();
+      vendas.splice(index, 1);
+      renderizarTabela();
+    }
+
+    function excluirVenda(index) {
+      vendas.splice(index, 1);
+      renderizarTabela();
+    }
+
+    function salvarVendas() {
+      if (!vendedorAtual) return;
+      localStorage.setItem('vendas_' + vendedorAtual.nome, JSON.stringify(vendas));
+      alert('Vendas salvas com sucesso.');
+    }
+
+    function exportarPDF() {
+      window.print(); // simplificado para impressão direta. Pode ser substituído por html2pdf se desejar.
+    }
+
+    function voltar() {
+      window.location.href = 'painel.html';
+    }
+  </script>
+</body>
+</html>

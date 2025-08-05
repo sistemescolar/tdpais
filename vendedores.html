@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cadastro de Vendedores</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .user-info {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    .user-info p {
+      margin: 5px 0;
+      font-weight: bold;
+    }
+
+    hr {
+      margin: 20px 0;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      padding: 10px 15px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #218838;
+    }
+
+    .btn-secondary {
+      background: #007bff;
+    }
+
+    .btn-secondary:hover {
+      background: #0056b3;
+    }
+
+    .vendedor-item {
+      background: #fff;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .vendedor-info {
+      flex: 1;
+    }
+
+    .actions button {
+      margin-left: 5px;
+    }
+
+    @media (max-width: 600px) {
+      .vendedor-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .actions {
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Cadastro de Vendedores</h2>
+  </header>
+
+  <div class="user-info">
+    <p id="usuarioInfo">UsuÃ¡rio: ...</p>
+    <p id="horaAtual">Hora: --:--:--</p>
+  </div>
+
+  <hr>
+
+  <div>
+    <div class="form-group">
+      <label>Vendedor:</label>
+      <input type="text" id="vendedor">
+    </div>
+    <div class="form-group">
+      <label>Cotação (R$):</label>
+      <input type="number" step="0.01" id="cotacao">
+    </div>
+    <div class="form-group">
+      <label>Localidade:</label>
+      <input type="text" id="localidade">
+    </div>
+    <button class="btn" onclick="salvarVendedor()">Salvar Vendedor</button>
+  </div>
+
+  <hr>
+
+  <div id="listaVendedores"></div>
+
+  <hr>
+
+  <button class="btn-secondary" onclick="irPara('painel.html')">Voltar ao Painel</button>
+  <button class="btn" style="background: crimson;" onclick="sair()">Sair</button>
+
+  <script>
+    // UsuÃ¡rio logado
+    const usuario = localStorage.getItem("usuarioLogado");
+    if (!usuario) {
+      window.location.href = "index.html";
+    } else {
+      document.getElementById("usuarioInfo").textContent = "UsuÃ¡rio: " + usuario;
+    }
+
+    // RelÃ³gio
+    function atualizarRelogio() {
+      const agora = new Date();
+      const hora = agora.toLocaleTimeString();
+      document.getElementById("horaAtual").textContent = "Hora: " + hora;
+    }
+
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+
+    // Carregar lista
+    function carregarVendedores() {
+      const lista = JSON.parse(localStorage.getItem("vendedores") || "[]");
+      const container = document.getElementById("listaVendedores");
+      container.innerHTML = "";
+
+      lista.forEach((v, i) => {
+        const div = document.createElement("div");
+        div.className = "vendedor-item";
+        div.innerHTML = `
+          <div class="vendedor-info">
+            <strong>${v.nome}</strong><br>
+            CotaÃ§Ã£o: R$ ${parseFloat(v.cotacao).toFixed(2)}<br>
+            Localidade: ${v.localidade}
+          </div>
+          <div class="actions">
+            <button onclick="editarVendedor(${i})">Editar</button>
+            <button onclick="excluirVendedor(${i})">Excluir</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function salvarVendedor() {
+      const nome = document.getElementById("vendedor").value.trim();
+      const cotacao = document.getElementById("cotacao").value;
+      const localidade = document.getElementById("localidade").value.trim();
+
+      if (!nome || !cotacao || !localidade) {
+        alert("Preencha todos os campos!");
+        return;
+      }
+
+      let vendedores = JSON.parse(localStorage.getItem("vendedores") || "[]");
+
+      if (editando !== null) {
+        vendedores[editando] = { nome, cotacao, localidade };
+        editando = null;
+      } else {
+        vendedores.push({ nome, cotacao, localidade });
+      }
+
+      localStorage.setItem("vendedores", JSON.stringify(vendedores));
+      limparCampos();
+      carregarVendedores();
+    }
+
+    let editando = null;
+
+    function editarVendedor(i) {
+      const vendedores = JSON.parse(localStorage.getItem("vendedores") || "[]");
+      const v = vendedores[i];
+      document.getElementById("vendedor").value = v.nome;
+      document.getElementById("cotacao").value = v.cotacao;
+      document.getElementById("localidade").value = v.localidade;
+      editando = i;
+    }
+
+    function excluirVendedor(i) {
+      if (confirm("Deseja excluir este vendedor?")) {
+        let vendedores = JSON.parse(localStorage.getItem("vendedores") || "[]");
+        vendedores.splice(i, 1);
+        localStorage.setItem("vendedores", JSON.stringify(vendedores));
+        carregarVendedores();
+      }
+    }
+
+    function limparCampos() {
+      document.getElementById("vendedor").value = "";
+      document.getElementById("cotacao").value = "";
+      document.getElementById("localidade").value = "";
+    }
+
+    function sair() {
+      localStorage.removeItem("usuarioLogado");
+      window.location.href = "index.html";
+    }
+
+    carregarVendedores();
+  </script>
+</body>
+</html>

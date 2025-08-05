@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Relatório</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .clock { font-weight: bold; }
+    h2, h3 { text-align: center; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    hr { margin: 20px 0; }
+    button {
+      display: block;
+      margin: 30px auto;
+      padding: 10px 20px;
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background-color: #0b7dda; }
+    .totais { text-align: center; font-weight: bold; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>Usuário logado: <strong id="usuarioLogado">---</strong></div>
+    <div class="clock" id="relogio"></div>
+  </div>
+
+  <hr>
+  <h2>RELATÓRIO DE VENDAS</h2>
+  <hr>
+
+  <table id="tabelaVendas">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Bloco</th>
+        <th>Data</th>
+        <th>Recebeu</th>
+        <th>Devolveu</th>
+        <th>Vendeu</th>
+        <th>Apurou</th>
+        <th>Pagou</th>
+        <th>Deve</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="totais">
+    TOTAL APURADO: <span id="totalApurado">R$ 0,00</span>
+  </div>
+
+  <hr>
+  <h3>RELATÓRIO DE DESPESAS</h3>
+  <hr>
+
+  <table id="tabelaDespesas">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Valor</th>
+        <th>Descrição</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="totais">
+    TOTAL DAS DESPESAS: <span id="totalDespesas">R$ 0,00</span>
+  </div>
+
+  <hr>
+  <div class="totais">
+    TOTAL DAS RECEITAS: <span id="totalReceitas">R$ 0,00</span><br>
+    TOTAL DAS DESPESAS: <span id="totalGastos">R$ 0,00</span><br>
+    TOTAL FINAL: <span id="totalFinal">R$ 0,00</span>
+  </div>
+
+  <button onclick="exportarPDF()">Exportar Relatório em PDF</button>
+
+  <!-- jsPDF + AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+  <script>
+    const { jsPDF } = window.jspdf;
+
+    document.getElementById("usuarioLogado").textContent = localStorage.getItem("usuarioLogado") || "Desconhecido";
+
+    function atualizarRelogio() {
+      const agora = new Date();
+      document.getElementById('relogio').textContent = agora.toLocaleDateString() + ' ' + agora.toLocaleTimeString();
+    }
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+
+    const vendedores = JSON.parse(localStorage.getItem("vendedores") || "[]");
+    const vendas = JSON.parse(localStorage.getItem("vendas") || "{}");
+    const despesas = JSON.parse(localStorage.getItem("despesas") || "[]");
+    const blocos = JSON.parse(localStorage.getItem("blocos") || "{}");
+
+    const tbodyVendas = document.querySelector("#tabelaVendas tbody");
+    let totalApurado = 0;
+
+    vendedores.forEach(v => {
+      const listaVendas = vendas[v.nome] || [];
+      const bloco = blocos[v.nome] || "—";
+      listaVendas.forEach(venda => {
+        const vendeu = venda.recebeu - venda.devolveu;
+        const apurou = vendeu * v.cotacao;
+        const pagou = venda.pagou || 0;
+        const deve = apurou - pagou;
+        totalApurado += apurou;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${v.nome}</td>
+          <td>${bloco}</td>
+          <td>${venda.data}</td>
+          <td>${venda.recebeu}</td>
+          <td>${venda.devolveu}</td>
+          <td>${vendeu}</td>
+          <td>R$ ${apurou.toFixed(2)}</td>
+          <td>R$ ${pagou.toFixed(2)}</td>
+          <td>R$ ${deve.toFixed(2)}</td>
+        `;
+        tbodyVendas.appendChild(tr);
+      });
+    });
+
+    document.getElementById("totalApurado").textContent = `R$ ${totalApurado.toFixed(2)}`;
+    document.getElementById("totalReceitas").textContent = `R$ ${totalApurado.toFixed(2)}`;
+
+    const tbodyDespesas = document.querySelector("#tabelaDespesas tbody");
+    let totalDespesas = 0;
+
+    despesas.forEach(d => {
+      const valor = parseFloat(d.valor || 0);
+      totalDespesas += valor;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.data}</td>
+        <td>R$ ${valor.toFixed(2)}</td>
+        <td>${d.descricao}</td>
+      `;
+      tbodyDespesas.appendChild(tr);
+    });
+
+    document.getElementById("totalDespesas").textContent = `R$ ${totalDespesas.toFixed(2)}`;
+    document.getElementById("totalGastos").textContent = `R$ ${totalDespesas.toFixed(2)}`;
+    document.getElementById("totalFinal").textContent = `R$ ${(totalApurado - totalDespesas).toFixed(2)}`;
+
+    function exportarPDF() {
+      const doc = new jsPDF();
+      doc.setFontSize(12);
+      doc.text("RELATÓRIO DE VENDAS", 75, 10);
+      doc.text(`Usuário: ${localStorage.getItem("usuarioLogado") || ""}`, 10, 20);
+      doc.text(`Data: ${new Date().toLocaleString()}`, 10, 30);
+
+      const vendasData = [];
+      vendedores.forEach(v => {
+        const listaVendas = vendas[v.nome] || [];
+        const bloco = blocos[v.nome] || "—";
+        listaVendas.forEach(venda => {
+          const vendeu = venda.recebeu - venda.devolveu;
+          const apurou = vendeu * v.cotacao;
+          const pagou = venda.pagou || 0;
+          const deve = apurou - pagou;
+          vendasData.push([
+            v.nome,
+            bloco,
+            venda.data,
+            venda.recebeu,
+            venda.devolveu,
+            vendeu,
+            `R$ ${apurou.toFixed(2)}`,
+            `R$ ${pagou.toFixed(2)}`,
+            `R$ ${deve.toFixed(2)}`
+          ]);
+        });
+      });
+
+      doc.autoTable({
+        head: [["Nome", "Bloco", "Data", "Recebeu", "Devolveu", "Vendeu", "Apurou", "Pagou", "Deve"]],
+        body: vendasData,
+        startY: 40
+      });
+
+      let y = doc.lastAutoTable.finalY + 10;
+      doc.text(`TOTAL APURADO: R$ ${totalApurado.toFixed(2)}`, 10, y);
+      y += 10;
+
+      doc.text("RELATÓRIO DE DESPESAS", 75, y);
+      y += 10;
+
+      const despesasData = despesas.map(d => [
+        d.data,
+        `R$ ${parseFloat(d.valor || 0).toFixed(2)}`,
+        d.descricao
+      ]);
+
+      doc.autoTable({
+        head: [["Data", "Valor", "Descrição"]],
+        body: despesasData,
+        startY: y
+      });
+
+      y = doc.lastAutoTable.finalY + 10;
+      doc.text(`TOTAL DAS RECEITAS: R$ ${totalApurado.toFixed(2)}`, 10, y);
+      y += 7;
+      doc.text(`TOTAL DAS DESPESAS: R$ ${totalDespesas.toFixed(2)}`, 10, y);
+      y += 7;
+      doc.text(`TOTAL FINAL: R$ ${(totalApurado - totalDespesas).toFixed(2)}`, 10, y);
+
+      doc.save("relatorio_completo.pdf");
+    }
+  </script>
+</body>
+</html>
