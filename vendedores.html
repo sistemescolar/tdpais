@@ -110,7 +110,7 @@
   </header>
 
   <div class="user-info">
-    <p id="usuarioInfo">UsuÃ¡rio: ...</p>
+    <p id="usuarioInfo">Usuário: ...</p>
     <p id="horaAtual">Hora: --:--:--</p>
   </div>
 
@@ -142,7 +142,7 @@
   <button class="btn" style="background: crimson;" onclick="sair()">Sair</button>
 
   <script>
-    // UsuÃ¡rio logado
+    // Usuário logado
     const usuario = localStorage.getItem("usuarioLogado");
     if (!usuario) {
       window.location.href = "index.html";
@@ -150,7 +150,7 @@
       document.getElementById("usuarioInfo").textContent = "UsuÃ¡rio: " + usuario;
     }
 
-    // RelÃ³gio
+    // Relógio
     function atualizarRelogio() {
       const agora = new Date();
       const hora = agora.toLocaleTimeString();
@@ -243,3 +243,4 @@
   </script>
 </body>
 </html>
+
